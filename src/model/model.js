@@ -1,6 +1,6 @@
-import tf from '@tensorflow/tfjs';
+import * as tf from '@tensorflow/tfjs';
 
-class FederatedModel {
+export default class FederatedModel {
     constructor() {
         this.model = this.modelBuilder();
     }

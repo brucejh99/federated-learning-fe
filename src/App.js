@@ -1,23 +1,15 @@
-import logo from './logo.svg';
 import './App.css';
+import FederatedModel from './model/model';
 
 function App() {
+  const model = new FederatedModel();
+  console.log(model.model);
+
   return (
-    <div className="App">
-      <header className="App-header">
-        <img src={logo} className="App-logo" alt="logo" />
-        <p>
-          Edit <code>src/App.js</code> and save to reload.
-        </p>
-        <a
-          className="App-link"
-          href="https://reactjs.org"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          Learn React
-        </a>
-      </header>
+    <div className="button-container">
+      <button>Get and set new weights</button>
+      <button>Send updated weights</button>
+      <button>Train local model</button>
     </div>
   );
 }
