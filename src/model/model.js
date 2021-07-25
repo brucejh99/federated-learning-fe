@@ -1,4 +1,6 @@
 import * as tf from '@tensorflow/tfjs';
+import axios from 'axios';
+import { BE_LOCAL_URL, BE_URL } from '../constants/constants';
 
 export default class FederatedModel {
     constructor() {
@@ -7,9 +9,10 @@ export default class FederatedModel {
 
     // given input set of weights that fit in the model, load the weights into this.model
     setWeights(weights) {
-        return this.model.setWeights(weights);
+        this.model.setWeights(weights);
     }
 
+    // TODO: try creating hdf5 file and sending
     // return weights of the model in some standard format
     getWeights() {
         return this.model.getWeights();
@@ -17,16 +20,27 @@ export default class FederatedModel {
 
     // given some set of data (ex. image, label pair), perform federated learning prediction to
     // generate updated weights
-    async train(dataset, labels) {
-        const info = await this.model.fit(dataset, labels, {
-            epochs: 5,
-            batchSize: 32
-        });
-        console.log('Updated accuracy', info.history.acc);
+    async train() {
+        // const info = await this.model.fit(dataset, labels, {
+        //     epochs: 5,
+        //     batchSize: 32
+        // });
+        // console.log('Updated accuracy', info.history.acc);
 
-        const updatedWeights = this.getWeights();
-        console.log('Updated weights', updatedWeights);
-        // send weights here
+        // https://stackoverflow.com/questions/55532746/tensorflow-nodejs-serialize-deserialize-a-model-without-writing-it-to-a-uri
+        let result = await this.model.save(tf.io.withSaveHandler(async modelArtifacts => modelArtifacts));
+        result.weightData = Buffer.from(result.weightData).toString("base64");
+        const jsonStr = JSON.stringify(result);
+
+        console.log('Sending updated weights...');
+        const res = await axios({
+            method: 'POST',
+            url: `${BE_LOCAL_URL}/trained-weights`,
+            data: {
+                model: jsonStr,
+            }
+        });
+        console.log('res', res);
     }
 
     // pre-designed model from: https://codelabs.developers.google.com/codelabs/tfjs-training-classfication/index.html#4
@@ -42,12 +56,13 @@ export default class FederatedModel {
         // to specify the input shape. Then we specify some parameters for 
         // the convolution operation that takes place in this layer.
         model.add(tf.layers.conv2d({
-        inputShape: [IMAGE_WIDTH, IMAGE_HEIGHT, IMAGE_CHANNELS],
-        kernelSize: 5,
-        filters: 8,
-        strides: 1,
-        activation: 'relu',
-        kernelInitializer: 'varianceScaling'
+            inputShape: [IMAGE_WIDTH, IMAGE_HEIGHT, IMAGE_CHANNELS],
+            kernelSize: 5,
+            kernelInitializer: 'useBias',
+            filters: 8,
+            strides: 1,
+            activation: 'relu',
+            kernelInitializer: 'varianceScaling'
         }));
     
         // The MaxPooling layer acts as a sort of downsampling using max values
@@ -57,11 +72,11 @@ export default class FederatedModel {
         // Repeat another conv2d + maxPooling stack. 
         // Note that we have more filters in the convolution.
         model.add(tf.layers.conv2d({
-        kernelSize: 5,
-        filters: 16,
-        strides: 1,
-        activation: 'relu',
-        kernelInitializer: 'varianceScaling'
+            kernelSize: 5,
+            filters: 16,
+            strides: 1,
+            activation: 'relu',
+            kernelInitializer: 'varianceScaling'
         }));
         model.add(tf.layers.maxPooling2d({poolSize: [2, 2], strides: [2, 2]}));
         
@@ -74,9 +89,9 @@ export default class FederatedModel {
         // output class (i.e. 0, 1, 2, 3, 4, 5, 6, 7, 8, 9).
         const NUM_OUTPUT_CLASSES = 10;
         model.add(tf.layers.dense({
-        units: NUM_OUTPUT_CLASSES,
-        kernelInitializer: 'varianceScaling',
-        activation: 'softmax'
+            units: NUM_OUTPUT_CLASSES,
+            kernelInitializer: 'varianceScaling',
+            activation: 'softmax'
         }));
     
         
@@ -84,9 +99,9 @@ export default class FederatedModel {
         // then compile and return the model
         const optimizer = tf.train.adam();
         model.compile({
-        optimizer: optimizer,
-        loss: 'categoricalCrossentropy',
-        metrics: ['accuracy'],
+            optimizer: optimizer,
+            loss: 'categoricalCrossentropy',
+            metrics: ['accuracy'],
         });
     
         return model;
