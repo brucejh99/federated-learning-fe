@@ -17,8 +17,16 @@ export default class FederatedModel {
 
     // given some set of data (ex. image, label pair), perform federated learning prediction to
     // generate updated weights
-    train(data) {
-        
+    async train(dataset, labels) {
+        const info = await this.model.fit(dataset, labels, {
+            epochs: 5,
+            batchSize: 32
+        });
+        console.log('Updated accuracy', info.history.acc);
+
+        const updatedWeights = this.getWeights();
+        console.log('Updated weights', updatedWeights);
+        // send weights here
     }
 
     // pre-designed model from: https://codelabs.developers.google.com/codelabs/tfjs-training-classfication/index.html#4
