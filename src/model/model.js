@@ -1,10 +1,13 @@
 import * as tf from '@tensorflow/tfjs';
+import * as tfvis from '@tensorflow/tfjs-vis';
 import axios from 'axios';
 import { BE_LOCAL_URL, BE_URL } from '../constants/constants';
+import { MnistData } from './mnistdata';
 
 export default class FederatedModel {
     constructor() {
         this.model = this.modelBuilder();
+        this.mnistdata = undefined;
     }
 
     // given input set of weights that fit in the model, load the weights into this.model
@@ -20,12 +23,37 @@ export default class FederatedModel {
 
     // given some set of data (ex. image, label pair), perform federated learning prediction to
     // generate updated weights
-    async train() {
-        // const info = await this.model.fit(dataset, labels, {
-        //     epochs: 5,
-        //     batchSize: 32
-        // });
-        // console.log('Updated accuracy', info.history.acc);
+    async train(clientNum) {
+        if (this.mnistdata === undefined) {
+            this.mnistdata = new MnistData(clientNum);
+            const success = await this.mnistdata.load(clientNum); // is this how asyncs work in js?
+        }
+
+        const metrics = ['loss', 'val_loss', 'acc', 'val_acc'];
+        const container = {
+            name: 'Model Training', tab: 'Model', styles: { height: '1000px' }
+        };
+        const fitCallbacks = tfvis.show.fitCallbacks(container, metrics);
+        
+        const BATCH_SIZE = 32; // hyperparameter?
+        const TRAIN_DATA_SIZE = 2000;
+        const TEST_DATA_SIZE = 5000;
+
+        const [trainXs, trainYs] = tf.tidy(() => {
+            const d = this.mnistdata.nextTrainBatch(TRAIN_DATA_SIZE);
+            return [
+            d.xs.reshape([TRAIN_DATA_SIZE, 28, 28, 1]),
+            d.labels
+            ];
+        });
+
+        const info = await this.model.fit(trainXs, trainYs, {
+            batchSize: BATCH_SIZE,
+            epochs: 5,
+            shuffle: true,
+            callbacks: fitCallbacks
+        });
+        console.log('Updated accuracy', info.history.acc);
 
         // https://stackoverflow.com/questions/55532746/tensorflow-nodejs-serialize-deserialize-a-model-without-writing-it-to-a-uri
         let result = await this.model.save(tf.io.withSaveHandler(async modelArtifacts => modelArtifacts));

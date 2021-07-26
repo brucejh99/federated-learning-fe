@@ -1,13 +1,17 @@
 import './App.css';
+import React, { useState } from 'react';
 import axios from 'axios';
 import * as tf from '@tensorflow/tfjs';
 import FederatedModel from './model/model';
 import { BE_LOCAL_URL } from './constants/constants';
 
 function App() {
+  const TOTAL_CLIENTS = 6;
+  const [clientNum, setClientNum] = useState(0);
+
   const federatedModel = new FederatedModel();
-  console.log(federatedModel.model);
-  
+  // console.log(federatedModel.model);
+
   const getNewWeights = async () => {
     const res = await axios({
       method: 'GET',
@@ -24,8 +28,9 @@ function App() {
 
   return (
     <div className="button-container">
+      <button onClick={() => setClientNum((clientNum+1) % TOTAL_CLIENTS)}>Current client num: {clientNum}</button>
       <button onClick={() => getNewWeights()}>Get and set new weights</button>
-      <button onClick={() => federatedModel.train()}>Send updated weights</button>
+      <button onClick={() => federatedModel.train(clientNum)}>Send updated weights</button>
       <button>Train local model</button>
     </div>
   );
