@@ -73,6 +73,10 @@ export default class FederatedModel {
         console.log('res', res);
     }
 
+    async testAccuracy() {
+        
+    }
+
     // pre-designed model from: https://codelabs.developers.google.com/codelabs/tfjs-training-classfication/index.html#4
     // TODO: see if we need to update IMAGE_WIDTH, IMAGE_HEIGHT, IMAGE_CHANNELS, etc. Keep the citation above.
     modelBuilder() {
