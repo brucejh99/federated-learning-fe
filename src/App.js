@@ -3,7 +3,7 @@ import React, { useState } from 'react';
 import axios from 'axios';
 import * as tf from '@tensorflow/tfjs';
 import FederatedModel from './model/model';
-import { BE_LOCAL_URL } from './constants/constants';
+import { BE_LOCAL_URL, BE_URL } from './constants/constants';
 
 function App() {
   const TOTAL_CLIENTS = 6;
@@ -13,7 +13,7 @@ function App() {
   const getNewWeights = async () => {
     const res = await axios({
       method: 'GET',
-      url: `${BE_LOCAL_URL}/get-weights`
+      url: `${BE_URL}/get-weights`
     });
 
     const json = JSON.parse(res.data.model);
@@ -28,7 +28,7 @@ function App() {
       <button onClick={() => setClientNum((clientNum + 1) % TOTAL_CLIENTS)}>Current client num: {clientNum}</button>
       <button onClick={() => getNewWeights()}>Get and set new weights</button>
       <button onClick={() => federatedModel.train(clientNum)}>Train and send updated weights</button>
-      <button>Test model accuracy</button>
+      <button onClick={() => federatedModel.testAccuracy()}>Test model accuracy</button>
     </div>
   );
 }

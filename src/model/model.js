@@ -7,6 +7,7 @@ import { MnistData } from './mnistdata';
 export default class FederatedModel {
     constructor() {
         this.model = this.modelBuilder();
+        this.classNames = ['Zero', 'One', 'Two', 'Three', 'Four', 'Five', 'Six', 'Seven', 'Eight', 'Nine'];
         this.mnistdata = undefined;
     }
 
@@ -27,7 +28,7 @@ export default class FederatedModel {
         console.log('Training...');
         if (this.mnistdata === undefined) {
             this.mnistdata = new MnistData(clientNum);
-            const success = await this.mnistdata.load(clientNum); // is this how asyncs work in js?
+            const success = await this.mnistdata.load(clientNum);
         }
 
         const metrics = ['loss', 'val_loss', 'acc', 'val_acc'];
@@ -38,7 +39,6 @@ export default class FederatedModel {
         
         const BATCH_SIZE = 32; // hyperparameter?
         const TRAIN_DATA_SIZE = 2000;
-        const TEST_DATA_SIZE = 5000;
 
         const [trainXs, trainYs] = tf.tidy(() => {
             const d = this.mnistdata.nextTrainBatch(TRAIN_DATA_SIZE);
@@ -64,7 +64,7 @@ export default class FederatedModel {
         console.log('Sending updated weights...');
         const res = await axios({
             method: 'POST',
-            url: `${BE_LOCAL_URL}/aggregate-weights`,
+            url: `${BE_URL}/aggregate-weights`,
             data: {
                 model: jsonStr,
                 client: clientNum
@@ -73,8 +73,27 @@ export default class FederatedModel {
         console.log('res', res);
     }
 
+    // functions to test get accuracy:
+
     async testAccuracy() {
-        
+        if (this.mnistdata === undefined) {
+            this.mnistdata = new MnistData();
+            const success = await this.mnistdata.load(6);
+        }
+        const TEST_DATA_SIZE = 2000;
+
+        const [testXs, testYs] = tf.tidy(() => {
+            const d = this.mnistdata.getTestBatch(TEST_DATA_SIZE);
+            return [
+              d.xs.reshape([TEST_DATA_SIZE, 28, 28, 1]),
+              d.labels
+            ];
+        });
+
+        const result = this.model.evaluate(testXs, testYs);
+        console.log('Done evaluation');
+        console.log(this.model.metricsNames);
+        console.log(result.forEach(r => r.print()));
     }
 
     // pre-designed model from: https://codelabs.developers.google.com/codelabs/tfjs-training-classfication/index.html#4
