@@ -8,9 +8,7 @@ import { BE_LOCAL_URL } from './constants/constants';
 function App() {
   const TOTAL_CLIENTS = 6;
   const [clientNum, setClientNum] = useState(0);
-
-  const federatedModel = new FederatedModel();
-  // console.log(federatedModel.model);
+  const federatedModel = new FederatedModel();;
 
   const getNewWeights = async () => {
     const res = await axios({
@@ -18,20 +16,19 @@ function App() {
       url: `${BE_LOCAL_URL}/get-weights`
     });
 
-    console.log(res);
     const json = JSON.parse(res.data.model);
     const weightData = new Uint8Array(Buffer.from(json.weightData, "base64")).buffer;
     const updatedModel = await tf.loadLayersModel(tf.io.fromMemory(json.modelTopology, json.weightSpecs, weightData));
     federatedModel.model.setWeights(updatedModel.getWeights());
-    console.log('Done');
+    console.log('Done updating weights');
   }
 
   return (
     <div className="button-container">
-      <button onClick={() => setClientNum((clientNum+1) % TOTAL_CLIENTS)}>Current client num: {clientNum}</button>
+      <button onClick={() => setClientNum((clientNum + 1) % TOTAL_CLIENTS)}>Current client num: {clientNum}</button>
       <button onClick={() => getNewWeights()}>Get and set new weights</button>
-      <button onClick={() => federatedModel.train(clientNum)}>Send updated weights</button>
-      <button>Train local model</button>
+      <button onClick={() => federatedModel.train(clientNum)}>Train and send updated weights</button>
+      <button>Test model accuracy</button>
     </div>
   );
 }

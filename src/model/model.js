@@ -24,6 +24,7 @@ export default class FederatedModel {
     // given some set of data (ex. image, label pair), perform federated learning prediction to
     // generate updated weights
     async train(clientNum) {
+        console.log('Training...');
         if (this.mnistdata === undefined) {
             this.mnistdata = new MnistData(clientNum);
             const success = await this.mnistdata.load(clientNum); // is this how asyncs work in js?
@@ -42,8 +43,8 @@ export default class FederatedModel {
         const [trainXs, trainYs] = tf.tidy(() => {
             const d = this.mnistdata.nextTrainBatch(TRAIN_DATA_SIZE);
             return [
-            d.xs.reshape([TRAIN_DATA_SIZE, 28, 28, 1]),
-            d.labels
+                d.xs.reshape([TRAIN_DATA_SIZE, 28, 28, 1]),
+                d.labels
             ];
         });
 
@@ -63,9 +64,10 @@ export default class FederatedModel {
         console.log('Sending updated weights...');
         const res = await axios({
             method: 'POST',
-            url: `${BE_LOCAL_URL}/trained-weights`,
+            url: `${BE_LOCAL_URL}/aggregate-weights`,
             data: {
                 model: jsonStr,
+                client: clientNum
             }
         });
         console.log('res', res);
@@ -86,7 +88,6 @@ export default class FederatedModel {
         model.add(tf.layers.conv2d({
             inputShape: [IMAGE_WIDTH, IMAGE_HEIGHT, IMAGE_CHANNELS],
             kernelSize: 5,
-            kernelInitializer: 'useBias',
             filters: 8,
             strides: 1,
             activation: 'relu',
