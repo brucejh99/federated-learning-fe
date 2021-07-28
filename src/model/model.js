@@ -50,7 +50,7 @@ export default class FederatedModel {
 
         const info = await this.model.fit(trainXs, trainYs, {
             batchSize: BATCH_SIZE,
-            epochs: 5,
+            epochs: 2,
             shuffle: true,
             callbacks: fitCallbacks
         });
